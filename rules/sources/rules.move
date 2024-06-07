@@ -37,6 +37,4 @@ module rules::rules {
         self.total_rules = self.total_rules - 1;
         field::remove(&mut self.id, key)
     }
-
-
 }
