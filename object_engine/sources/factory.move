@@ -3,6 +3,7 @@ module object_engine::object_engine {
 
     use sui::transfer_policy::TransferRequest;
     use sui::dynamic_field as field;
+    use sui::package::Publisher;
 
     use object_engine::mint_policy::MintPolicy;
 
@@ -31,18 +32,20 @@ module object_engine::object_engine {
         number: u64
     }
 
+    const EInvalidPublisher: u64 = 0;
     const EMintAlreadyStarted: u64 = 0;
     const ECannotExceedMaximumSupply: u64 = 1;
 
     #[allow(lint(share_owned, self_transfer))]
-    public fun default<T>(name: String, ctx: &mut TxContext) {
-        let (object_engine, owner_cap) = new<T>(name, 0, true, ctx);
+    public fun default<T>(publisher: &Publisher, name: String, ctx: &mut TxContext) {
+        let (object_engine, owner_cap) = new<T>(publisher, name, 0, true, ctx);
 
         transfer::share_object(object_engine);
         transfer::transfer(owner_cap, ctx.sender());
     }
 
-    public fun new<T>(name: String, total_items: u64, is_random: bool, ctx: &mut TxContext): (ObjectEngine<T>, ObjectEngineOwnerCap) {
+    public fun new<T>(publisher: &Publisher, name: String, total_items: u64, is_random: bool, ctx: &mut TxContext): (ObjectEngine<T>, ObjectEngineOwnerCap) {
+        assert!(publisher.from_package<T>(), EInvalidPublisher);
         let config = new_config(is_random);
         let engine = new_internal(name, total_items, config, ctx);
         let owner_cap = new_owner_cap(&engine, ctx);
