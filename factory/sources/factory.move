@@ -1,9 +1,12 @@
 module factory::factory {
     use std::string::String;
 
+    use rules::rules::{Self, Rules};
+
     public struct Factory has key {
         id: UID,
         name: String,
+        rules: Rules,
         total_items: u64,
         total_minted: u64,
         config: FactoryConfig
@@ -29,14 +32,15 @@ module factory::factory {
     }
 
     public fun new(name: String, total_items: u64, is_random: bool, ctx: &mut TxContext): (Factory, FactoryOwnerCap) {
+        let rules = rules::new(ctx);
         let config = FactoryConfig {is_random};
-        let factory = Factory { id: object::new(ctx), name, total_items, total_minted: 0, config };
+        let factory = Factory { id: object::new(ctx), name, rules, total_items, total_minted: 0, config };
         let owner_cap = new_factory_cap(&factory, ctx);
 
         (factory, owner_cap)
     }
 
-    public fun set_random(self: &mut Factory, _cap: &FactoryOwnerCap, is_random: bool) {
+    public fun set_random(self: &mut Factory, _owner_cap: &FactoryOwnerCap, is_random: bool) {
         assert!(self.total_minted == 0, EMintAlreadyStarted);
         self.config.is_random = is_random;
     }
