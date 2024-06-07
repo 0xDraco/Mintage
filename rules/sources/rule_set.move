@@ -1,4 +1,5 @@
 module rules::rule_set {
+    use sui::package::Publisher;
     use sui::dynamic_field as field;
 
     public struct RuleSet<phantom T> has key, store {
@@ -15,9 +16,11 @@ module rules::rule_set {
         index: u64,
     }
 
+    const EInvalidPublisher: u64 = 0;
     const ERuleAlreadyAdded: u64 = 0;
 
-    public fun new<T>(ctx: &mut TxContext): (RuleSet<T>, RuleSetCap) {
+    public fun new<T>(publisher: &Publisher, ctx: &mut TxContext): (RuleSet<T>, RuleSetCap) {
+        assert!(publisher.from_package<T>(), EInvalidPublisher);
         let rule_set = RuleSet { 
             id: object::new(ctx),
             rules: vector::empty() 

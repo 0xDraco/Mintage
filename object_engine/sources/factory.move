@@ -37,15 +37,16 @@ module object_engine::object_engine {
     const ECannotExceedMaximumSupply: u64 = 1;
 
     #[allow(lint(share_owned, self_transfer))]
-    public fun default<T>(publisher: &Publisher, name: String, ctx: &mut TxContext) {
-        let (object_engine, owner_cap) = new<T>(publisher, name, 0, true, ctx);
+    public fun default<T>(name: String, publisher: &Publisher, ctx: &mut TxContext) {
+        let (object_engine, owner_cap) = new<T>(name, 0, true, publisher, ctx);
 
         transfer::share_object(object_engine);
         transfer::transfer(owner_cap, ctx.sender());
     }
 
-    public fun new<T>(publisher: &Publisher, name: String, total_items: u64, is_random: bool, ctx: &mut TxContext): (ObjectEngine<T>, ObjectEngineOwnerCap) {
+    public fun new<T>(name: String, total_items: u64, is_random: bool, publisher: &Publisher, ctx: &mut TxContext): (ObjectEngine<T>, ObjectEngineOwnerCap) {
         assert!(publisher.from_package<T>(), EInvalidPublisher);
+
         let config = new_config(is_random);
         let engine = new_internal(name, total_items, config, ctx);
         let owner_cap = new_owner_cap(&engine, ctx);
@@ -53,8 +54,8 @@ module object_engine::object_engine {
         (engine, owner_cap)
     }
 
-    public fun add_rule_set<T>(self: &mut ObjectEngine<T>, _owner_cap: &ObjectEngineOwnerCap, ctx: &mut TxContext): (RuleSet<T>, RuleSetCap) {
-        let (rule_set, rule_set_cap) = rule_set::new(ctx);
+    public fun add_rule_set<T>(self: &mut ObjectEngine<T>, _owner_cap: &ObjectEngineOwnerCap, publisher: &Publisher, ctx: &mut TxContext): (RuleSet<T>, RuleSetCap) {
+        let (rule_set, rule_set_cap) = rule_set::new(publisher, ctx);
         self.rule_set.fill(rule_set.id());
 
         (rule_set, rule_set_cap)
