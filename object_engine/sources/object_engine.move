@@ -15,7 +15,7 @@ module object_engine::object_engine {
         name: String,
         total_items: u64,
         total_minted: u64,
-        rule_set: Option<ID>,
+        policy: MintPolicy<T>,
         config: ObjectEngineConfig
     }
 
