@@ -30,14 +30,10 @@ module object_engine::object_engine_inner {
         engine: ID
     }
 
-    // public struct Key has copy, store, drop {
-    //     number: u64
-    // }
-
     const EMintAlreadyStarted: u64 = 1;
     const ECannotExceedTotalItems: u64 = 2;
     const ECannotUseDuplicatePolicyTag: u64 = 3;
-
+    const ENoItemInObjectEngine: u64 = 4;
 
     public(package) fun add_mint_policy<T: key + store>(self: &mut ObjectEngine<T>, tag: String, policy: ID) {
         let (tags, policies) = self.mint_policies.into_keys_values();
@@ -57,6 +53,12 @@ module object_engine::object_engine_inner {
 
         assert!(total_items < self.total_items, ECannotExceedTotalItems);
         self.items.add(total_items, item);
+    }
+
+    public(package) fun pop_item<T: key + store>(self: &mut ObjectEngine<T>): T {
+        let total_items = self.items.length();
+        assert!(total_items > 0, ENoItemInObjectEngine);
+        self.items.remove(total_items - 1)
     }
 
     public fun set_random<T: key + store>(self: &mut ObjectEngine<T>, _owner_cap: &ObjectEngineOwnerCap, is_random: bool) {

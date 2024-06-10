@@ -35,8 +35,8 @@ module object_engine::object_engine {
         assert!(policy_id.is_some(), EInvalidPolicyTag);
         assert!(policy_id.destroy_some() == policy.id(), EPolicyTagMismatch);
 
-
-        abort 0
+        let item = engine.pop_item();
+        policy.new_request(item)
     }
 
     public fun complete_mint<T: key + store, C>(policy: &MintPolicy<T, C>, request: MintRequest<T>, _ctx: &mut TxContext): T {
