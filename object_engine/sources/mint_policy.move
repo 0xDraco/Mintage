@@ -1,15 +1,17 @@
 module object_engine::mint_policy {
+    use std::type_name;
     use std::string::String;
 
     use sui::transfer_policy::{Self, TransferPolicy, TransferPolicyCap, TransferRequest};
-    use sui::balance::{Self, Balance};
     use sui::package::Publisher;
+    use sui::bag::{Self, Bag};
+    use sui::balance::Balance;
     use sui::coin::Coin;
 
-    public struct MintPolicy<phantom T, phantom C> has key, store {
+    public struct MintPolicy<phantom T> has key, store {
         id: UID,
         tag: String,
-        balance: Balance<C>,
+        balances: Bag,
         inner: TransferPolicy<T>
     }
 
@@ -19,21 +21,31 @@ module object_engine::mint_policy {
         inner: TransferRequest<T>
     }
 
+    public struct MintPolicyCap<phantom T> has key, store {
+        id: UID,
+        inner: TransferPolicyCap<T>
+    }
+
     const EPolicyIdMismatch: u64 = 0;
 
-    public fun new<T, C>(tag: String, publisher: &Publisher, ctx: &mut TxContext): (MintPolicy<T, C>, TransferPolicyCap<T>) {
-        let (policy, cap) = transfer_policy::new(publisher, ctx);
-        let mint_policy = MintPolicy { id: object::new(ctx), tag, inner: policy, balance: balance::zero() };
+    public fun new<T>(tag: String, publisher: &Publisher, ctx: &mut TxContext): (MintPolicy<T>, TransferPolicyCap<T>) {
+        let (inner, cap) = transfer_policy::new(publisher, ctx);
+        let mint_policy = MintPolicy { 
+            id: object::new(ctx), 
+            tag,
+            inner,
+            balances: bag::new(ctx) 
+        };
 
         (mint_policy, cap)
     }
 
-    public(package) fun new_request<T: key + store, C>(policy: &MintPolicy<T, C>, item: T): MintRequest<T> {
+    public(package) fun new_request<T: key + store>(policy: &MintPolicy<T>, item: T): MintRequest<T> {
        let inner = transfer_policy::new_request<T>(object::id(&item), 0, policy.id());
        MintRequest { item, inner, policy: policy.id() }
     }
 
-    public(package) fun confirm_request<T: key + store, C>(policy: &MintPolicy<T, C>, request: MintRequest<T>): T {
+    public(package) fun confirm_request<T: key + store>(policy: &MintPolicy<T>, request: MintRequest<T>): T {
         let MintRequest<T> { item, inner, policy: policy_id } = request;
         
         assert!(policy.id() == policy_id, EPolicyIdMismatch);
@@ -43,19 +55,21 @@ module object_engine::mint_policy {
         item
     }
 
-    public fun add_to_balance<T, C, Rule: drop>(self: &mut MintPolicy<T, C>, _: Rule, coin: Coin<C>) {
-        self.balance.join(coin.into_balance());
+    public fun add_to_balance<T, C, Rule: drop>(self: &mut MintPolicy<T>, _: Rule, coin: Coin<C>) {
+        let coin_type = type_name::get<C>().into_string();
+        if(self.balances.contains_with_type<std::ascii::String, Balance<C>>(coin_type)) {
+            let balance = self.balances.borrow_mut<std::ascii::String, Balance<C>>(coin_type);
+            balance.join(coin.into_balance());
+        } else {
+            self.balances.add(coin_type, coin.into_balance())
+        }
     }
 
-    public fun id<T, C>(self: &MintPolicy<T, C>): ID {
+    public fun id<T>(self: &MintPolicy<T>): ID {
         self.id.to_inner()
     }
 
-    public fun tag<T, C>(self: &MintPolicy<T, C>): &String {
+    public fun tag<T>(self: &MintPolicy<T>): &String {
         &self.tag
-    }
-
-    public fun balance<T, C>(self: &MintPolicy<T, C>): u64 {
-        self.balance.value()
     }
 }
