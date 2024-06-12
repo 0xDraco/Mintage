@@ -3,6 +3,8 @@ module object_engine::object_engine {
 
     use sui::package::Publisher;
     use sui::table::{Self, Table};
+    use sui::transfer_policy::TransferPolicy;
+    use sui::kiosk::{Kiosk, KioskOwnerCap};
     use sui::vec_map::{Self, VecMap};
 
     use object_engine::mint_policy::{MintPolicy, MintRequest};
@@ -70,8 +72,9 @@ module object_engine::object_engine {
         policy.new_request(item)
     }
 
-    public fun complete_mint<T: key + store>(policy: &MintPolicy<T>, request: MintRequest<T>, _ctx: &mut TxContext): T {
-        policy.confirm_request(request)
+    public fun complete_mint<T: key + store>(policy: &MintPolicy<T>,kiosk: &mut Kiosk, kiosk_cap: &KioskOwnerCap, tf_policy: &TransferPolicy<T>, request: MintRequest<T>) {
+        let item = policy.confirm_request(request);
+        kiosk.lock(kiosk_cap, tf_policy, item)
     }
 
     public fun add_items<T: key + store>(self: &mut ObjectEngine<T>, owner_cap: &ObjectEngineOwnerCap, mut items: vector<T>) {

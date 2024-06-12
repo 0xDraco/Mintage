@@ -55,6 +55,16 @@ module object_engine::mint_policy {
         item
     }
 
+    public fun add_rule<T: key + store, Rule: drop, Config: store + drop>(self: &mut MintPolicy<T>, cap: &MintPolicyCap<T>, rule: Rule, config: Config) {
+       transfer_policy::add_rule(rule, &mut self.inner, &cap.inner, config)
+    }
+
+    public fun add_receipt<T: key + store, Rule: drop>(self: &mut MintRequest<T>, rule: Rule) {
+        transfer_policy::add_receipt(rule, &mut self.inner)
+    }
+
+    
+
     public fun add_to_balance<T, C, Rule: drop>(self: &mut MintPolicy<T>, _: Rule, coin: Coin<C>) {
         let coin_type = type_name::get<C>().into_string();
         if(self.balances.contains_with_type<std::ascii::String, Balance<C>>(coin_type)) {

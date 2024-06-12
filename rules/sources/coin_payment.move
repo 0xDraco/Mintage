@@ -11,9 +11,13 @@ module rules::coin_payment {
 
     const EInvalidPaymentAmount: u64 = 0;
 
+    public fun new<T>(amount: u64, recipient: address): (Rule, CoinPayment<T>) {
+        (Rule {}, CoinPayment<T> { amount, recipient })
+    }
+
     public fun add<T, C>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>, amount: u64, recipient: address) {
-        let payment = CoinPayment<C> { amount, recipient };
-        transfer_policy::add_rule(Rule {}, policy, cap, payment)
+        let (rule, payment) = new<C>(amount, recipient);
+        transfer_policy::add_rule(rule, policy, cap, payment)
     }
 
     public fun remove<T, C>(policy: &mut TransferPolicy<T>, cap: &TransferPolicyCap<T>) {
